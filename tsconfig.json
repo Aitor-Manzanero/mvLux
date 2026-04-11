@@ -1,0 +1,72 @@
+// {
+//   // Visit https://aka.ms/tsconfig to read more about this file
+//   "compilerOptions": {
+//     // File Layout
+//     // "rootDir": "./src",
+//     // "outDir": "./dist",
+
+//     // Environment Settings
+//     // See also https://aka.ms/tsconfig/module
+//     "module": "nodenext",
+//     "target": "esnext",
+//     "types": [],
+//     // For nodejs:
+//     // "lib": ["esnext"],
+//     // "types": ["node"],
+//     // and npm install -D @types/node
+
+//     // Other Outputs
+//     "sourceMap": true,
+//     "declaration": true,
+//     "declarationMap": true,
+
+//     // Stricter Typechecking Options
+//     "noUncheckedIndexedAccess": true,
+//     "exactOptionalPropertyTypes": true,
+
+//     // Style Options
+//     // "noImplicitReturns": true,
+//     // "noImplicitOverride": true,
+//     // "noUnusedLocals": true,
+//     // "noUnusedParameters": true,
+//     // "noFallthroughCasesInSwitch": true,
+//     // "noPropertyAccessFromIndexSignature": true,
+
+//     // Recommended Options
+//     "strict": true,
+//     "jsx": "react-jsx",
+//     "verbatimModuleSyntax": true,
+//     "isolatedModules": true,
+//     "noUncheckedSideEffectImports": true,
+//     "moduleDetection": "force",
+//     "skipLibCheck": true,
+//   }
+// }
+
+{
+  "compilerOptions": {
+    /* Estructura del Proyecto */
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "rootDir": "./src",            /* Descomentado: donde estará tu código .ts */
+    "outDir": "./dist",           /* Descomentado: donde se generará el .js */
+    
+    /* Interoperabilidad y Seguridad */
+    "strict": true,
+    "esModuleInterop": true,      /* Vital para importar Express correctamente */
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+
+    /* Tipado mejorado (los tenías y son buenos) */
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "moduleDetection": "force",
+    
+    /* Generación de archivos para debugging */
+    "sourceMap": true,
+    "declaration": false 
+  },
+  "include": ["src/**/*"],         /* Indica a TS que solo mire la carpeta src */
+  "exclude": ["node_modules", "**/*.test.ts"]
+}

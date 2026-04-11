@@ -1,0 +1,3 @@
+Comando para iniciar Bash: node --loader ts-node/esm src/server.ts
+
+Las claves de la BD están en process.env
