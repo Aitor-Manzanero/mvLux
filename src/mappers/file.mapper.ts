@@ -6,9 +6,9 @@ export const mapFilmToDTO = (film: findMainFilmInfo): FilmDTO => ({
   title: film.original_title,
   year: new Date(film.release_date).getFullYear(),
   poster: `https://i.ytimg.com/vi/P-DvQaV9gNI/maxresdefault.jpg`,
-  director: film.name,
+  director: film.complete_name,
   country: "USA",
-  studio: film.complete_name,
+  studio: film.name,
   duration: film.duration,
   synopsis: film.overview
 });
