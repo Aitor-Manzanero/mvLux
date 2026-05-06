@@ -574,7 +574,7 @@ async function start() {
 // setupSearch();
 
 start().then(films => {
-  // console.log("Films:", films);
+  console.log("Films:", films);
     render(films.results);
   setupHeaderScroll();
   setupSearch();
