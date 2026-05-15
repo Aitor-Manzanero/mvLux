@@ -36,25 +36,25 @@ export async function findFilmsByDirector(name: string) {
     f.duration,
     f.overview,
     g.genre_name
-FROM film f
+    FROM film f
 
-LEFT JOIN film_genre fg ON f.id = fg.film_id
-LEFT JOIN genre g ON fg.genre_id = g.id
+    LEFT JOIN film_genre fg ON f.id = fg.film_id
+    LEFT JOIN genre g ON fg.genre_id = g.id
 
-LEFT JOIN film_company fc ON fc.film_id = f.id
-LEFT JOIN company c ON c.id = fc.company_id
+    LEFT JOIN film_company fc ON fc.film_id = f.id
+    LEFT JOIN company c ON c.id = fc.company_id
 
-LEFT JOIN film_director fd ON fd.film_id = f.id
-LEFT JOIN director d ON d.id = fd.director_id
+    LEFT JOIN film_director fd ON fd.film_id = f.id
+    LEFT JOIN director d ON d.id = fd.director_id
 
-GROUP BY
-    f.id,
-    g.genre_name,
-    f.original_title,
-    f.release_date,
-    d.complete_name,
-    f.duration,
-    f.overview;
+    GROUP BY
+        f.id,
+        g.genre_name,
+        f.original_title,
+        f.release_date,
+        d.complete_name,
+        f.duration,
+        f.overview;
         `;
     const [rows] = await pool.execute<findMainFilmInfo[]>(sql, [`%${name}%`]);
       return rows.map(mapFilmToDTO);

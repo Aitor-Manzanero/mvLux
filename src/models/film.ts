@@ -14,7 +14,7 @@ export interface findMainFilmInfo extends RowDataPacket {
   original_title: string;
   release_date: string;
   complete_name: string;
-  name: string; // Nombre de la productora
+  company: string; // Nombre de la productora
   duration: string;
   overview: string;
 }
