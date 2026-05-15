@@ -10,10 +10,11 @@ export interface findFilmsByDirector extends RowDataPacket {
 }
 
 export interface findMainFilmInfo extends RowDataPacket {
+  genre_name: string;
   original_title: string;
   release_date: string;
   complete_name: string;
-  name: string;
+  name: string; // Nombre de la productora
   duration: string;
   overview: string;
 }
