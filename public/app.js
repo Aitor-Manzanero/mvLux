@@ -507,7 +507,24 @@ function setupSearch() {
   if (toggleLeft) toggleLeft.addEventListener("click", toggleSearch);
   if (toggleRight) toggleRight.addEventListener("click", toggleSearch);
 
-  input.addEventListener("input", (e) => applyFilter(e.target.value));
+  let searchTimeout;
+
+input.addEventListener("input", (e) => {
+  const value = e.target.value.trim();
+
+  clearTimeout(searchTimeout);
+
+  searchTimeout = setTimeout(() => {
+
+    if (!value) {
+      loadMainPanel();
+      return;
+    }
+
+    searchFilms(value);
+
+  }, 300);
+});
 
   window.addEventListener("keydown", (e) => {
     if (e.key === "Escape") {
@@ -522,21 +539,21 @@ function setupSearch() {
   });
 }
 
-function applyFilter(query) {
-  const q = (query || "").trim().toLowerCase();
-  const cards = document.querySelectorAll(".card");
+// function applyFilter(query) {
+//   const q = (query || "").trim().toLowerCase();
+//   const cards = document.querySelectorAll(".card");
 
-  for (const card of cards) {
-    const title = card.getAttribute("data-title") || "";
-    const match = !q || title.includes(q);
-    card.style.display = match ? "" : "none";
-  }
+//   for (const card of cards) {
+//     const title = card.getAttribute("data-title") || "";
+//     const match = !q || title.includes(q);
+//     card.style.display = match ? "" : "none";
+//   }
 
-  // ✅ recalcula flechas tras filtrar
-  document.querySelectorAll(".rowwrap").forEach(w => {
-    if (typeof w._updateArrows === "function") w._updateArrows();
-  });
-}
+//   // ✅ recalcula flechas tras filtrar
+//   document.querySelectorAll(".rowwrap").forEach(w => {
+//     if (typeof w._updateArrows === "function") w._updateArrows();
+//   });
+// }
 
 async function start() {
   // if (!texto) {
@@ -572,10 +589,48 @@ async function start() {
 // render(DATA);
 // setupHeaderScroll();
 // setupSearch();
+// start viejo 
+// start().then(films => {
+//   console.log("Films:", films);
+//     render(films.results);
+//   setupHeaderScroll();
+//   setupSearch();
+// });
 
-start().then(films => {
-  console.log("Films:", films);
-    render(films.results);
-  setupHeaderScroll();
-  setupSearch();
-});
+
+async function loadMainPanel() {
+  const url = "http://localhost:3000/api/films/mainInfo?name=a";
+
+  try {
+    const response = await fetch(url);
+    const data = await response.json();
+
+    console.log("Main panel:", data);
+
+    render(data.results);
+
+  } catch (error) {
+    console.error("Error cargando panel principal:", error);
+  }
+}
+
+async function searchFilms(text) {
+  try {
+    const url = `http://localhost:3000/api/films?name=${encodeURIComponent(text)}`;
+
+    const response = await fetch(url);
+    const data = await response.json();
+
+    console.log("Search results:", data);
+
+    render(data.results);
+
+  } catch (error) {
+    console.error("Error buscando películas:", error);
+  }
+}
+
+loadMainPanel();
+
+setupHeaderScroll();
+setupSearch();
