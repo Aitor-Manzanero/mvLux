@@ -1,37 +1,13 @@
-/* =========================
-   API URL
-========================= */
+/* APP.JS */
 
 const API =
 "http://localhost:3000/api/films";
 
 /* =========================
-   GLOBAL DATA
-========================= */
-
-let MOVIES = [];
-
-/* =========================
-   HELPERS
-========================= */
-
-function el(tag, className){
-
-  const node =
-  document.createElement(tag);
-
-  if(className){
-    node.className = className;
-  }
-
-  return node;
-}
-
-/* =========================
    FETCH MOVIES
 ========================= */
 
-async function fetchMovies(){
+async function getMovies(){
 
   try{
 
@@ -41,19 +17,13 @@ async function fetchMovies(){
     const data =
     await response.json();
 
-    MOVIES =
-    data.results || data;
-
-    render(MOVIES);
-
-    if(MOVIES.length){
-      setupHero(MOVIES[0]);
-    }
+    return data.results || [];
 
   }catch(error){
 
     console.error(error);
 
+    return [];
   }
 
 }
@@ -67,44 +37,49 @@ function setupHero(movie){
   const hero =
   document.getElementById("hero");
 
-  document.getElementById("heroTitle")
-  .textContent =
-  movie.title ||
+  document.getElementById(
+    "heroTitle"
+  ).textContent =
   movie.original_title;
 
-  document.getElementById("heroDescription")
-  .textContent =
-  movie.synopsis ||
+  document.getElementById(
+    "heroDescription"
+  ).textContent =
   movie.overview;
 
   hero.style.background = `
     linear-gradient(
       to right,
-      rgba(0,0,0,.92) 20%,
+      rgba(0,0,0,.9),
       rgba(0,0,0,.2)
-    ),
-    linear-gradient(
-      to top,
-      rgba(20,20,20,1),
-      rgba(20,20,20,.2)
     ),
     url("${movie.poster}")
     center/cover no-repeat
   `;
 
-  document.getElementById("heroPlay")
-  .onclick = () => {
+  document.getElementById(
+    "heroPlay"
+  ).onclick = () => {
 
     openMovie(movie);
 
   };
 
-  document.getElementById("heroInfo")
-  .onclick = () => {
+}
 
-    openMovie(movie);
+/* =========================
+   OPEN MOVIE
+========================= */
 
-  };
+function openMovie(movie){
+
+  localStorage.setItem(
+    "movie",
+    JSON.stringify(movie)
+  );
+
+  window.location.href =
+  "./index2.html";
 
 }
 
@@ -115,7 +90,10 @@ function setupHero(movie){
 function createCard(movie){
 
   const card =
-  el("article","card");
+  document.createElement("article");
+
+  card.className =
+  "card";
 
   card.innerHTML = `
     <img
@@ -126,93 +104,64 @@ function createCard(movie){
     <div class="card__meta">
 
       <p class="card__title">
-        ${movie.title || movie.original_title}
+        ${movie.original_title}
       </p>
 
       <p class="card__year">
-        ${movie.year || ""}
+        ${movie.release_date || ""}
       </p>
 
     </div>
   `;
 
   card.onclick = () => {
-
     openMovie(movie);
-
   };
 
   return card;
 }
 
 /* =========================
-   OPEN MOVIE PAGE
-========================= */
-
-function openMovie(movie){
-
-  window.location.href =
-  `index2.html?id=${movie.id}`;
-
-}
-
-/* =========================
    RENDER
 ========================= */
 
-function render(data){
-
-  const sections = {};
-
-  data.forEach(movie => {
-
-    const section =
-    movie.section || "Películas";
-
-    if(!sections[section]){
-
-      sections[section] = [];
-
-    }
-
-    sections[section]
-    .push(movie);
-
-  });
+function render(movies){
 
   const root =
-  document.getElementById("sections");
+  document.getElementById(
+    "sections"
+  );
 
   root.innerHTML = "";
 
-  Object.entries(sections)
-  .forEach(([name,movies]) => {
+  const section =
+  document.createElement("section");
 
-    const section =
-    el("section","section");
+  section.className =
+  "section";
 
-    section.innerHTML = `
-      <h2 class="section__title">
-        ${name}
-      </h2>
-    `;
+  section.innerHTML = `
+    <h2 class="section__title">
+      Películas
+    </h2>
+  `;
 
-    const row =
-    el("div","row");
+  const row =
+  document.createElement("div");
 
-    movies.forEach(movie => {
+  row.className = "row";
 
-      row.appendChild(
-        createCard(movie)
-      );
+  movies.forEach(movie => {
 
-    });
-
-    section.appendChild(row);
-
-    root.appendChild(section);
+    row.appendChild(
+      createCard(movie)
+    );
 
   });
+
+  section.appendChild(row);
+
+  root.appendChild(section);
 
 }
 
@@ -220,33 +169,34 @@ function render(data){
    SEARCH
 ========================= */
 
-function setupSearch(){
+function setupSearch(allMovies){
 
   const input =
-  document.getElementById("searchInput");
+  document.getElementById(
+    "searchInput"
+  );
 
-  input.addEventListener("input", () => {
+  input.addEventListener(
+    "input",
+    () => {
 
-    const value =
-    input.value.toLowerCase();
+      const value =
+      input.value.toLowerCase();
 
-    const filtered =
-    MOVIES.filter(movie => {
+      const filtered =
+      allMovies.filter(movie => {
 
-      const title =
-      (
-        movie.title ||
-        movie.original_title ||
-        ""
-      ).toLowerCase();
+        return movie
+        .original_title
+        .toLowerCase()
+        .includes(value);
 
-      return title.includes(value);
+      });
 
-    });
+      render(filtered);
 
-    render(filtered);
-
-  });
+    }
+  );
 
 }
 
@@ -254,6 +204,21 @@ function setupSearch(){
    INIT
 ========================= */
 
-fetchMovies();
+async function init(){
 
-setupSearch();
+  const movies =
+  await getMovies();
+
+  if(!movies.length){
+    return;
+  }
+
+  setupHero(movies[0]);
+
+  render(movies);
+
+  setupSearch(movies);
+
+}
+
+init();
