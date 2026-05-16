@@ -1,729 +1,262 @@
 <!doctype html>
 <html lang="es">
+
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Fakeflix</title>
+
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <title>Fakeflix Player</title>
+
   <style>
-    :root{
-      --bg:#141414;
-      --fg:#fff;
-      --muted:#b3b3b3;
-      --card:#1f1f1f;
-      --shadow: 0 10px 30px rgba(0,0,0,.45);
-      --radius: 10px;
-      --row-gap: 22px;
+
+    *{
+      box-sizing:border-box;
     }
 
-    *{ box-sizing:border-box; }
-    html,body{ height:100%; }
     body{
       margin:0;
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-      background: var(--bg);
-      color: var(--fg);
-      overflow-x:hidden;
+
+      background:black;
+
+      font-family:
+      Arial,
+      sans-serif;
+
+      color:white;
     }
 
-    /* Topbar */
-    .topbar{
-      position: fixed;
-      top:0; left:0; right:0;
-      height: 68px;
-      display:flex;
-      align-items:center;
-      gap:18px;
-      padding: 0 44px;
-      z-index: 50;
-      transition: background .25s ease, backdrop-filter .25s ease;
-      background: linear-gradient(to bottom, rgba(0,0,0,.65), rgba(0,0,0,0));
-    }
-    .topbar.solid{
-      background: rgba(20,20,20,.88);
-      backdrop-filter: blur(10px);
-      box-shadow: 0 2px 12px rgba(0,0,0,.35);
-    }
+    /* =========================
+       PLAYER PAGE
+    ========================== */
 
-    .brand{
-      display:flex; align-items:center; gap:10px;
-      font-weight: 800;
-      letter-spacing:.5px;
-      text-transform: uppercase;
-    }
-    .brand-badge{
-      width: 26px; height: 26px;
-      border-radius: 6px;
-      background: #e50914;
-      box-shadow: 0 6px 18px rgba(229,9,20,.25);
-    }
+    .player{
 
-    .nav{
-      display:flex;
-      gap:14px;
-      margin-left: 6px;
-      color: var(--muted);
-      font-size: 14px;
-    }
-    .nav a{
-      color: inherit;
-      text-decoration:none;
-      padding: 8px 6px;
-      border-radius: 8px;
-    }
-    .nav a:hover{ color:#fff; background: rgba(255,255,255,.06); }
+      position:relative;
 
-    .spacer{ flex:1; }
-
-    .search{
-      position: relative;
-      width: min(520px, 46vw);
-    }
-    .search input{
       width:100%;
-      padding: 10px 12px 10px 36px;
-      border-radius: 999px;
-      border: 1px solid rgba(255,255,255,.14);
-      outline: none;
-      background: rgba(0,0,0,.35);
-      color:#fff;
-      font-size: 14px;
-    }
-    .search input::placeholder{ color: rgba(255,255,255,.55); }
-    .search .icon{
-      position:absolute;
-      top:50%; left: 12px;
-      transform: translateY(-50%);
-      opacity:.85;
-      font-size: 14px;
-      user-select:none;
-    }
+      height:100vh;
 
-    .profile{
-      display:flex; align-items:center; gap:10px;
-      margin-left: 8px;
-      color: var(--muted);
-      font-size: 14px;
-    }
-    .avatar{
-      width: 30px; height: 30px;
-      border-radius: 8px;
-      background: linear-gradient(135deg, #2d2d2d, #111);
-      border: 1px solid rgba(255,255,255,.12);
-    }
-
-    /* Hero */
-    .hero{
-      position: relative;
-      height: clamp(520px, 72vh, 760px);
-      display:flex;
-      align-items:flex-end;
-      padding: 0 44px 56px;
-      background:
-        radial-gradient(1200px 420px at 20% 25%, rgba(229,9,20,.18), transparent 60%),
-        linear-gradient(to top, rgba(20,20,20,1) 0%, rgba(20,20,20,.55) 45%, rgba(20,20,20,0) 75%),
-        linear-gradient(90deg, rgba(0,0,0,.75), rgba(0,0,0,0) 55%),
-        url("https://images.unsplash.com/photo-1524985069026-dd778a71c7b4?auto=format&fit=crop&w=1800&q=70") center/cover no-repeat;
-      margin-top: 0;
-    }
-    .hero::after{
-      content:"";
-      position:absolute; inset:0;
-      background: linear-gradient(to bottom, rgba(20,20,20,0) 60%, rgba(20,20,20,1) 100%);
-      pointer-events:none;
-    }
-
-    .hero-content{
-      position: relative;
-      z-index: 2;
-      max-width: 760px;
-    }
-    .hero-kicker{
-      display:inline-flex;
-      align-items:center;
-      gap:8px;
-      color: rgba(255,255,255,.85);
-      font-size: 13px;
-      letter-spacing:.15em;
-      text-transform: uppercase;
-      margin-bottom: 12px;
-    }
-    .hero-title{
-      font-size: clamp(34px, 4.6vw, 64px);
-      line-height: 1.02;
-      margin: 0 0 12px;
-      text-shadow: 0 10px 30px rgba(0,0,0,.7);
-    }
-    .hero-desc{
-      margin:0 0 18px;
-      color: rgba(255,255,255,.86);
-      font-size: 15.5px;
-      line-height: 1.45;
-      max-width: 62ch;
-      text-shadow: 0 10px 30px rgba(0,0,0,.6);
-    }
-    .hero-actions{
-      display:flex;
-      flex-wrap:wrap;
-      gap:10px;
-      align-items:center;
-    }
-    .btn{
-      border:0;
-      border-radius: 10px;
-      padding: 11px 16px;
-      font-weight: 650;
-      cursor:pointer;
-      display:inline-flex;
-      align-items:center;
-      gap:10px;
-      transition: transform .12s ease, background .12s ease, opacity .12s ease;
-      user-select:none;
-    }
-    .btn:active{ transform: scale(.98); }
-    .btn-primary{
-      background:#fff;
-      color:#111;
-    }
-    .btn-primary:hover{ background:#f0f0f0; }
-    .btn-ghost{
-      background: rgba(109,109,110,.55);
-      color:#fff;
-    }
-    .btn-ghost:hover{ background: rgba(109,109,110,.7); }
-    .pill{
-      display:inline-flex;
-      gap:8px;
-      align-items:center;
-      padding: 8px 10px;
-      border-radius: 999px;
-      background: rgba(0,0,0,.35);
-      border: 1px solid rgba(255,255,255,.12);
-      color: rgba(255,255,255,.85);
-      font-size: 13px;
-      margin-left: 8px;
-    }
-
-    /* Main */
-    main{
-      position: relative;
-      padding: 22px 0 64px;
-      margin-top: -34px; /* sube las filas hacia el hero */
-    }
-
-    .section{
-      padding: 0 44px;
-      margin: 0 0 var(--row-gap);
-    }
-    .row-head{
-      display:flex;
-      align-items: baseline;
-      justify-content: space-between;
-      gap:12px;
-      margin: 0 0 10px;
-    }
-    .row-title{
-      font-size: 18px;
-      font-weight: 750;
-      margin:0;
-    }
-    .row-meta{
-      color: var(--muted);
-      font-size: 13px;
-    }
-
-    /* Carousel */
-    .carousel{
-      position: relative;
-    }
-    .track{
-      display:flex;
-      gap:10px;
-      overflow-x:auto;
-      overflow-y:hidden;
-      scroll-behavior:smooth;
-      padding: 10px 4px 16px;
-      scrollbar-width: none; /* firefox */
-    }
-    .track::-webkit-scrollbar{ display:none; }
-
-    .card{
-      flex: 0 0 auto;
-      width: clamp(130px, 12vw, 190px);
-      aspect-ratio: 2/3;
-      border-radius: var(--radius);
-      background: var(--card);
-      position: relative;
       overflow:hidden;
-      box-shadow: 0 0 0 rgba(0,0,0,0);
-      transform: translateZ(0);
-      cursor:pointer;
-      transition: transform .18s ease, box-shadow .18s ease, filter .18s ease;
-      border: 1px solid rgba(255,255,255,.08);
+
+      background:black;
+
     }
-    .card img{
+
+    video{
+
       width:100%;
       height:100%;
-      object-fit: cover;
-      display:block;
-      filter: saturate(1.02) contrast(1.02);
-      transform: scale(1.02);
+
+      object-fit:cover;
+
+      background:black;
+
     }
-    .card:hover{
-      transform: scale(1.06);
-      box-shadow: var(--shadow);
-      z-index: 2;
-    }
-    .card .badge{
+
+    /* =========================
+       TOPBAR
+    ========================== */
+
+    .player__top{
+
       position:absolute;
-      top:10px; left:10px;
-      background: rgba(0,0,0,.6);
-      border: 1px solid rgba(255,255,255,.18);
-      color:#fff;
-      font-size: 12px;
-      padding: 6px 8px;
-      border-radius: 999px;
-      backdrop-filter: blur(6px);
+
+      top:0;
+      left:0;
+      right:0;
+
+      z-index:10;
+
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+
+      padding:20px 30px;
+
+      background:
+      linear-gradient(
+        to bottom,
+        rgba(0,0,0,.9),
+        rgba(0,0,0,0)
+      );
     }
-    .card .overlay{
+
+    .logo{
+
+      display:flex;
+      align-items:center;
+      gap:10px;
+
+      font-size:24px;
+      font-weight:800;
+    }
+
+    .logo__dot{
+
+      width:14px;
+      height:14px;
+
+      border-radius:4px;
+
+      background:#ff6b00;
+    }
+
+    .back{
+
+      border:none;
+
+      background:
+      rgba(255,255,255,.15);
+
+      color:white;
+
+      padding:12px 18px;
+
+      border-radius:10px;
+
+      cursor:pointer;
+
+      font-size:15px;
+      font-weight:700;
+
+      backdrop-filter:blur(10px);
+    }
+
+    .back:hover{
+      background:
+      rgba(255,255,255,.25);
+    }
+
+    /* =========================
+       INFO
+    ========================== */
+
+    .player__info{
+
       position:absolute;
-      inset:auto 0 0 0;
-      padding: 10px 10px 10px;
-      background: linear-gradient(to top, rgba(0,0,0,.78), rgba(0,0,0,0));
-      color:#fff;
-      transform: translateY(14%);
-      opacity: 0;
-      transition: opacity .18s ease, transform .18s ease;
+
+      left:40px;
+      bottom:50px;
+
+      z-index:10;
+
+      max-width:700px;
+    }
+
+    .player__title{
+
+      margin:0 0 12px;
+
+      font-size:
+      clamp(36px,5vw,70px);
+
+      line-height:.95;
+    }
+
+    .player__desc{
+
+      font-size:18px;
+
+      line-height:1.6;
+
+      color:
+      rgba(255,255,255,.8);
+    }
+
+    /* =========================
+       SHADOW
+    ========================== */
+
+    .shadow{
+
+      position:absolute;
+      inset:0;
+
+      background:
+      linear-gradient(
+        to top,
+        rgba(0,0,0,.8),
+        rgba(0,0,0,0)
+      );
+
       pointer-events:none;
     }
-    .card:hover .overlay{
-      opacity: 1;
-      transform: translateY(0);
-    }
-    .overlay .t{
-      font-size: 13px;
-      font-weight: 700;
-      line-height: 1.2;
-      margin: 0 0 4px;
-      text-shadow: 0 8px 20px rgba(0,0,0,.6);
-    }
-    .overlay .s{
-      font-size: 12px;
-      color: rgba(255,255,255,.85);
-      margin: 0;
-    }
 
-    .arrow{
-      position:absolute;
-      top: 50%;
-      transform: translateY(-50%);
-      border:0;
-      width: 44px;
-      height: 68px;
-      border-radius: 12px;
-      background: rgba(0,0,0,.55);
-      color:#fff;
-      cursor:pointer;
-      opacity: 0;
-      transition: opacity .18s ease, background .18s ease;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      backdrop-filter: blur(8px);
-      border: 1px solid rgba(255,255,255,.10);
-      z-index: 5;
-    }
-    .carousel:hover .arrow{ opacity: 1; }
-    .arrow:hover{ background: rgba(0,0,0,.7); }
-    .arrow.left{ left: -10px; }
-    .arrow.right{ right: -10px; }
-    .arrow span{ font-size: 22px; line-height: 1; }
-
-    /* Modal */
-    .modal{
-      position: fixed;
-      inset:0;
-      display:none;
-      align-items:center;
-      justify-content:center;
-      padding: 26px;
-      background: rgba(0,0,0,.72);
-      z-index: 200;
-    }
-    .modal.open{ display:flex; }
-    .modal-card{
-      width: min(980px, 94vw);
-      border-radius: 18px;
-      overflow:hidden;
-      background: #141414;
-      border: 1px solid rgba(255,255,255,.12);
-      box-shadow: 0 25px 70px rgba(0,0,0,.6);
-      position: relative;
-    }
-    .modal-hero{
-      height: 360px;
-      background: #000 center/cover no-repeat;
-      position: relative;
-    }
-    .modal-hero::after{
-      content:"";
-      position:absolute; inset:0;
-      background: linear-gradient(to top, rgba(20,20,20,1) 0%, rgba(20,20,20,.25) 55%, rgba(20,20,20,0) 80%);
-    }
-    .modal-body{
-      padding: 16px 18px 18px;
-      display:grid;
-      grid-template-columns: 1fr 260px;
-      gap: 18px;
-    }
-    .modal-title{
-      margin: 0 0 6px;
-      font-size: 22px;
-      font-weight: 800;
-    }
-    .modal-desc{
-      margin: 0 0 10px;
-      color: rgba(255,255,255,.85);
-      line-height: 1.45;
-      font-size: 14px;
-    }
-    .meta-grid{
-      display:flex;
-      flex-wrap:wrap;
-      gap: 8px;
-      color: var(--muted);
-      font-size: 13px;
-    }
-    .chip{
-      padding: 7px 10px;
-      border-radius: 999px;
-      background: rgba(255,255,255,.06);
-      border: 1px solid rgba(255,255,255,.10);
-    }
-    .close{
-      position:absolute;
-      top: 12px; right: 12px;
-      width: 38px; height: 38px;
-      border-radius: 12px;
-      border: 1px solid rgba(255,255,255,.14);
-      background: rgba(0,0,0,.45);
-      color:#fff;
-      cursor:pointer;
-      z-index: 4;
-      backdrop-filter: blur(8px);
-    }
-
-    /* Responsive */
-    @media (max-width: 860px){
-      .topbar{ padding: 0 16px; }
-      .section, .hero{ padding-left: 16px; padding-right: 16px; }
-      .nav{ display:none; }
-      .search{ width: 46vw; min-width: 180px; }
-      .arrow.left{ left: 0; }
-      .arrow.right{ right: 0; }
-      .modal-body{ grid-template-columns: 1fr; }
-    }
   </style>
+
 </head>
 
 <body>
-  <header class="topbar" id="topbar">
-    <div class="brand" aria-label="Fakeflix">
-      <div class="brand-badge" aria-hidden="true"></div>
-      Fakeflix
+
+  <!-- =========================
+       PLAYER
+  ========================== -->
+
+  <div class="player">
+
+    <div class="player__top">
+
+      <div class="logo">
+
+        <div class="logo__dot"></div>
+
+        FAKEFLIX
+
+      </div>
+
+      <button
+        class="back"
+        onclick="history.back()"
+      >
+        ← Volver
+      </button>
+
     </div>
 
-    <nav class="nav" aria-label="Navegación">
-      <a href="#" data-nav="home">Inicio</a>
-      <a href="#" data-nav="series">Series</a>
-      <a href="#" data-nav="pelis">Películas</a>
-      <a href="#" data-nav="mi-lista">Mi lista</a>
-    </nav>
+    <!-- =========================
+         VIDEO
+    ========================== -->
 
-    <div class="spacer"></div>
+    <video
+      controls
+      autoplay
+    >
 
-    <div class="search">
-      <div class="icon">🔎</div>
-      <input id="q" type="text" placeholder="Buscar títulos..." autocomplete="off" />
-    </div>
+      <source
+        src="./videos/pelicula.mp4"
+        type="video/mp4"
+      >
 
-    <div class="profile" title="Perfil">
-      <div class="avatar" aria-hidden="true"></div>
-    </div>
-  </header>
+    </video>
 
-  <section class="hero" aria-label="Destacado">
-    <div class="hero-content">
-      <div class="hero-kicker">DESTACADO · HOY</div>
-      <h1 class="hero-title" id="heroTitle">Noche de Neon</h1>
-      <p class="hero-desc" id="heroDesc">
-        Una ciudad que no duerme, un secreto que nadie quiere contar y un detective que ya lo perdió todo.
-        Pulsa “Ver” para abrir la ficha.
+    <div class="shadow"></div>
+
+    <!-- =========================
+         INFO
+    ========================== -->
+
+    <div class="player__info">
+
+      <h1 class="player__title">
+        Los odiosos ocho
+      </h1>
+
+      <p class="player__desc">
+
+        El cazarrecompensas John Ruth y su fugitiva Daisy Domergue
+        intentan llegar al pueblo de Red Rock.
+
       </p>
-      <div class="hero-actions">
-        <button class="btn btn-primary" id="heroPlay">▶ Ver</button>
-        <button class="btn btn-ghost" id="heroInfo">ℹ Más información</button>
-        <span class="pill" id="heroTag">#Thriller · 2026 · 1h 58m</span>
-      </div>
-    </div>
-  </section>
 
-  <main id="main">
-    <!-- Rows se generan por JS -->
-  </main>
-
-  <!-- Modal -->
-  <div class="modal" id="modal" role="dialog" aria-modal="true" aria-label="Detalles">
-    <div class="modal-card">
-      <button class="close" id="closeModal" aria-label="Cerrar">✕</button>
-      <div class="modal-hero" id="modalHero"></div>
-      <div class="modal-body">
-        <div>
-          <h2 class="modal-title" id="modalTitle">Título</h2>
-          <p class="modal-desc" id="modalDesc">Descripción</p>
-          <div class="meta-grid" id="modalMeta"></div>
-        </div>
-        <div>
-          <div class="meta-grid" style="justify-content:flex-end">
-            <span class="chip" id="modalRating">⭐ 8.1</span>
-            <span class="chip" id="modalYear">📅 2026</span>
-            <span class="chip" id="modalDur">⏱ 1h 45m</span>
-          </div>
-        </div>
-      </div>
     </div>
+
   </div>
 
-  <script>
-    // ======= Datos demo (luego lo conectas a tu JSON / API) =======
-    const ROWS = [
-      {
-        title: "Tendencias",
-        hint: "Lo más visto esta semana",
-        items: makeItems("trend", 12)
-      },
-      {
-        title: "Acción y adrenalina",
-        hint: "Explosiones, persecuciones y caos",
-        items: makeItems("action", 14)
-      },
-      {
-        title: "Thrillers oscuros",
-        hint: "Nada es lo que parece",
-        items: makeItems("thriller", 14)
-      },
-      {
-        title: "Comedia ligera",
-        hint: "Para cenar con algo fácil",
-        items: makeItems("comedy", 14)
-      }
-    ];
-
-    // Posters (Unsplash) solo para maquetar.
-    // En tu proyecto real, sustituye por /assets/posters/... y metadatos reales.
-    const POSTERS = [
-      "https://images.unsplash.com/photo-1524985069026-dd778a71c7b4?auto=format&fit=crop&w=600&q=70",
-      "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=600&q=70",
-      "https://images.unsplash.com/photo-1517602302552-471fe67acf66?auto=format&fit=crop&w=600&q=70",
-      "https://images.unsplash.com/photo-1542204165-65bf26472b9b?auto=format&fit=crop&w=600&q=70",
-      "https://images.unsplash.com/photo-1522120692535-0f622a3d1492?auto=format&fit=crop&w=600&q=70",
-      "https://images.unsplash.com/photo-1518929458119-e5bf444c30f4?auto=format&fit=crop&w=600&q=70",
-      "https://images.unsplash.com/photo-1497032628192-86f99bcd76bc?auto=format&fit=crop&w=600&q=70",
-      "https://images.unsplash.com/photo-1505686994434-e3cc5abf1330?auto=format&fit=crop&w=600&q=70",
-      "https://images.unsplash.com/photo-1523206489230-c012c64b2b48?auto=format&fit=crop&w=600&q=70",
-      "https://images.unsplash.com/photo-1526948128573-703ee1aeb6fa?auto=format&fit=crop&w=600&q=70",
-      "https://images.unsplash.com/photo-1517602384016-6a1a0f1a3b75?auto=format&fit=crop&w=600&q=70",
-      "https://images.unsplash.com/photo-1507924538820-ede94a04019d?auto=format&fit=crop&w=600&q=70"
-    ];
-
-    function makeItems(prefix, n){
-      const genres = {
-        trend: ["Thriller","Drama","Acción"],
-        action: ["Acción","Crimen","Aventura"],
-        thriller: ["Thriller","Misterio","Noir"],
-        comedy: ["Comedia","Romance","Familiar"]
-      };
-
-      const picks = genres[prefix] || ["Drama"];
-      return Array.from({length:n}).map((_,i) => {
-        const year = 2016 + ((i * 7) % 11);
-        const dur = 85 + ((i * 9) % 55);
-        const g = picks[i % picks.length];
-        const rating = (6.6 + ((i * 13) % 28) / 10).toFixed(1);
-        return {
-          id: `${prefix}-${i+1}`,
-          title: titleize(prefix) + " " + (i+1),
-          desc: "Sinopsis demo. Sustituye este texto por una descripción real cuando conectes tu biblioteca.",
-          year,
-          duration: minutesToHM(dur),
-          genre: g,
-          rating,
-          poster: POSTERS[i % POSTERS.length]
-        };
-      });
-    }
-
-    function titleize(s){ return s.charAt(0).toUpperCase() + s.slice(1); }
-    function minutesToHM(min){
-      const h = Math.floor(min / 60);
-      const m = min % 60;
-      return h ? `${h}h ${String(m).padStart(2,"0")}m` : `${m}m`;
-    }
-
-    // ======= Render =======
-    const main = document.getElementById("main");
-
-    function render(rows){
-      main.innerHTML = "";
-      rows.forEach((row, idx) => {
-        const section = document.createElement("section");
-        section.className = "section";
-        section.dataset.row = idx;
-
-        section.innerHTML = `
-          <div class="row-head">
-            <h2 class="row-title">${escapeHtml(row.title)}</h2>
-            <div class="row-meta">${escapeHtml(row.hint || "")}</div>
-          </div>
-          <div class="carousel">
-            <button class="arrow left" aria-label="Izquierda"><span>‹</span></button>
-            <div class="track" tabindex="0"></div>
-            <button class="arrow right" aria-label="Derecha"><span>›</span></button>
-          </div>
-        `;
-
-        const track = section.querySelector(".track");
-        row.items.forEach((it, j) => {
-          const card = document.createElement("div");
-          card.className = "card";
-          card.dataset.id = it.id;
-          card.dataset.title = it.title.toLowerCase();
-          card.dataset.genre = it.genre.toLowerCase();
-          card.innerHTML = `
-            <img loading="lazy" alt="${escapeAttr(it.title)}" src="${it.poster}">
-            <div class="badge">${escapeHtml(it.genre)}</div>
-            <div class="overlay">
-              <p class="t">${escapeHtml(it.title)}</p>
-              <p class="s">⭐ ${escapeHtml(it.rating)} · ${escapeHtml(String(it.year))} · ${escapeHtml(it.duration)}</p>
-            </div>
-          `;
-          card.addEventListener("click", () => openModal(it));
-          track.appendChild(card);
-        });
-
-        // Scroll arrows
-        const left = section.querySelector(".arrow.left");
-        const right = section.querySelector(".arrow.right");
-        const scrollAmount = () => Math.max(360, Math.floor(track.clientWidth * 0.85));
-
-        left.addEventListener("click", () => track.scrollBy({left: -scrollAmount(), behavior:"smooth"}));
-        right.addEventListener("click", () => track.scrollBy({left: scrollAmount(), behavior:"smooth"}));
-
-        // Keyboard: flechas en track
-        track.addEventListener("keydown", (e) => {
-          if(e.key === "ArrowRight") { e.preventDefault(); track.scrollBy({left: 220, behavior:"smooth"}); }
-          if(e.key === "ArrowLeft")  { e.preventDefault(); track.scrollBy({left:-220, behavior:"smooth"}); }
-        });
-
-        main.appendChild(section);
-      });
-    }
-
-    // ======= Search =======
-    const q = document.getElementById("q");
-    q.addEventListener("input", () => {
-      const term = q.value.trim().toLowerCase();
-      filter(term);
-    });
-
-    function filter(term){
-      document.querySelectorAll(".card").forEach(card => {
-        if(!term){
-          card.style.display = "";
-          return;
-        }
-        const ok =
-          card.dataset.title.includes(term) ||
-          card.dataset.genre.includes(term);
-        card.style.display = ok ? "" : "none";
-      });
-    }
-
-    // ======= Topbar scroll effect =======
-    const topbar = document.getElementById("topbar");
-    window.addEventListener("scroll", () => {
-      topbar.classList.toggle("solid", window.scrollY > 20);
-    });
-
-    // ======= Modal =======
-    const modal = document.getElementById("modal");
-    const closeModalBtn = document.getElementById("closeModal");
-    const modalHero = document.getElementById("modalHero");
-    const modalTitle = document.getElementById("modalTitle");
-    const modalDesc = document.getElementById("modalDesc");
-    const modalMeta = document.getElementById("modalMeta");
-    const modalRating = document.getElementById("modalRating");
-    const modalYear = document.getElementById("modalYear");
-    const modalDur = document.getElementById("modalDur");
-
-    function openModal(item){
-      modalHero.style.backgroundImage = `url("${item.poster}")`;
-      modalTitle.textContent = item.title;
-      modalDesc.textContent = item.desc;
-      modalMeta.innerHTML = `
-        <span class="chip">🎭 ${escapeHtml(item.genre)}</span>
-        <span class="chip">🆔 ${escapeHtml(item.id)}</span>
-      `;
-      modalRating.textContent = `⭐ ${item.rating}`;
-      modalYear.textContent = `📅 ${item.year}`;
-      modalDur.textContent = `⏱ ${item.duration}`;
-
-      modal.classList.add("open");
-      document.body.style.overflow = "hidden";
-    }
-
-    function closeModal(){
-      modal.classList.remove("open");
-      document.body.style.overflow = "";
-    }
-
-    closeModalBtn.addEventListener("click", closeModal);
-    modal.addEventListener("click", (e) => {
-      if(e.target === modal) closeModal();
-    });
-    window.addEventListener("keydown", (e) => {
-      if(e.key === "Escape" && modal.classList.contains("open")) closeModal();
-    });
-
-    // Hero actions
-    const heroTitle = document.getElementById("heroTitle");
-    const heroDesc = document.getElementById("heroDesc");
-    const heroTag = document.getElementById("heroTag");
-    const heroPlay = document.getElementById("heroPlay");
-    const heroInfo = document.getElementById("heroInfo");
-
-    // Toma el primer item de Tendencias como "destacado"
-    const featured = ROWS[0].items[0];
-    heroTitle.textContent = featured.title;
-    heroDesc.textContent = featured.desc;
-    heroTag.textContent = `#${featured.genre} · ${featured.year} · ${featured.duration}`;
-    heroPlay.addEventListener("click", () => openModal(featured));
-    heroInfo.addEventListener("click", () => openModal(featured));
-
-    // ======= Utils =======
-    function escapeHtml(str){
-      return String(str)
-        .replaceAll("&","&amp;")
-        .replaceAll("<","&lt;")
-        .replaceAll(">","&gt;")
-        .replaceAll('"',"&quot;")
-        .replaceAll("'","&#039;");
-    }
-    function escapeAttr(str){
-      return escapeHtml(str).replaceAll('"',"&quot;");
-    }
-
-    // Init render
-    render(ROWS);
-  </script>
 </body>
+
 </html>
