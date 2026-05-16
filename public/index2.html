@@ -12,192 +12,20 @@
 
   <title>Fakeflix Player</title>
 
-  <style>
-
-    *{
-      box-sizing:border-box;
-    }
-
-    body{
-      margin:0;
-
-      background:black;
-
-      font-family:
-      Arial,
-      sans-serif;
-
-      color:white;
-    }
-
-    /* =========================
-       PLAYER PAGE
-    ========================== */
-
-    .player{
-
-      position:relative;
-
-      width:100%;
-      height:100vh;
-
-      overflow:hidden;
-
-      background:black;
-
-    }
-
-    video{
-
-      width:100%;
-      height:100%;
-
-      object-fit:cover;
-
-      background:black;
-
-    }
-
-    /* =========================
-       TOPBAR
-    ========================== */
-
-    .player__top{
-
-      position:absolute;
-
-      top:0;
-      left:0;
-      right:0;
-
-      z-index:10;
-
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-
-      padding:20px 30px;
-
-      background:
-      linear-gradient(
-        to bottom,
-        rgba(0,0,0,.9),
-        rgba(0,0,0,0)
-      );
-    }
-
-    .logo{
-
-      display:flex;
-      align-items:center;
-      gap:10px;
-
-      font-size:24px;
-      font-weight:800;
-    }
-
-    .logo__dot{
-
-      width:14px;
-      height:14px;
-
-      border-radius:4px;
-
-      background:#ff6b00;
-    }
-
-    .back{
-
-      border:none;
-
-      background:
-      rgba(255,255,255,.15);
-
-      color:white;
-
-      padding:12px 18px;
-
-      border-radius:10px;
-
-      cursor:pointer;
-
-      font-size:15px;
-      font-weight:700;
-
-      backdrop-filter:blur(10px);
-    }
-
-    .back:hover{
-      background:
-      rgba(255,255,255,.25);
-    }
-
-    /* =========================
-       INFO
-    ========================== */
-
-    .player__info{
-
-      position:absolute;
-
-      left:40px;
-      bottom:50px;
-
-      z-index:10;
-
-      max-width:700px;
-    }
-
-    .player__title{
-
-      margin:0 0 12px;
-
-      font-size:
-      clamp(36px,5vw,70px);
-
-      line-height:.95;
-    }
-
-    .player__desc{
-
-      font-size:18px;
-
-      line-height:1.6;
-
-      color:
-      rgba(255,255,255,.8);
-    }
-
-    /* =========================
-       SHADOW
-    ========================== */
-
-    .shadow{
-
-      position:absolute;
-      inset:0;
-
-      background:
-      linear-gradient(
-        to top,
-        rgba(0,0,0,.8),
-        rgba(0,0,0,0)
-      );
-
-      pointer-events:none;
-    }
-
-  </style>
+  <link
+    rel="stylesheet"
+    href="./styles.css"
+  >
 
 </head>
 
 <body>
 
-  <!-- =========================
-       PLAYER
-  ========================== -->
-
   <div class="player">
+
+    <!-- =========================
+         TOPBAR
+    ========================== -->
 
     <div class="player__top">
 
@@ -223,15 +51,10 @@
     ========================== -->
 
     <video
+      id="movieVideo"
       controls
       autoplay
     >
-
-      <source
-        src="./videos/pelicula.mp4"
-        type="video/mp4"
-      >
-
     </video>
 
     <div class="shadow"></div>
@@ -242,20 +65,83 @@
 
     <div class="player__info">
 
-      <h1 class="player__title">
-        Los odiosos ocho
+      <h1
+        class="player__title"
+        id="movieTitle"
+      >
+        Cargando...
       </h1>
 
-      <p class="player__desc">
-
-        El cazarrecompensas John Ruth y su fugitiva Daisy Domergue
-        intentan llegar al pueblo de Red Rock.
-
+      <p
+        class="player__desc"
+        id="movieDescription"
+      >
+        ...
       </p>
 
     </div>
 
   </div>
+
+  <script>
+
+    /* =========================
+       GET MOVIE ID
+    ========================== */
+
+    const params =
+    new URLSearchParams(window.location.search);
+
+    const movieId =
+    params.get("id");
+
+    /* =========================
+       LOAD MOVIE
+    ========================== */
+
+    async function loadMovie(){
+
+      try{
+
+        const response =
+        await fetch(
+          `http://localhost:3000/api/films/${movieId}`
+        );
+
+        const movie =
+        await response.json();
+
+        document.getElementById("movieTitle")
+        .textContent =
+        movie.title ||
+        movie.original_title;
+
+        document.getElementById("movieDescription")
+        .textContent =
+        movie.synopsis ||
+        movie.overview;
+
+        const video =
+        document.getElementById("movieVideo");
+
+        video.innerHTML = `
+          <source
+            src="${movie.video}"
+            type="video/mp4"
+          >
+        `;
+
+      }catch(error){
+
+        console.error(error);
+
+      }
+
+    }
+
+    loadMovie();
+
+  </script>
 
 </body>
 

@@ -1,42 +1,15 @@
-const DATA = [
+/* =========================
+   API URL
+========================= */
 
-  {
-    section:"Tendencias",
-    title:"Los odiosos ocho",
-    year:2015,
+const API =
+"http://localhost:3000/api/films";
 
-    poster:"https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?q=80&w=900&auto=format&fit=crop",
+/* =========================
+   GLOBAL DATA
+========================= */
 
-    synopsis:"El cazarrecompensas John Ruth y su fugitiva Daisy Domergue intentan llegar al pueblo de Red Rock.",
-
-    video:"./videos/pelicula.mp4"
-  },
-
-  {
-    section:"Tendencias",
-    title:"Dune",
-    year:2021,
-
-    poster:"https://picsum.photos/seed/dune/600/900",
-
-    synopsis:"Paul Atreides viaja a Arrakis.",
-
-    video:"./videos/pelicula.mp4"
-  },
-
-  {
-    section:"Acción",
-    title:"John Wick",
-    year:2014,
-
-    poster:"https://picsum.photos/seed/johnwick/600/900",
-
-    synopsis:"Un exasesino vuelve.",
-
-    video:"./videos/pelicula.mp4"
-  }
-
-];
+let MOVIES = [];
 
 /* =========================
    HELPERS
@@ -44,7 +17,8 @@ const DATA = [
 
 function el(tag, className){
 
-  const node = document.createElement(tag);
+  const node =
+  document.createElement(tag);
 
   if(className){
     node.className = className;
@@ -54,18 +28,54 @@ function el(tag, className){
 }
 
 /* =========================
+   FETCH MOVIES
+========================= */
+
+async function fetchMovies(){
+
+  try{
+
+    const response =
+    await fetch(API);
+
+    const data =
+    await response.json();
+
+    MOVIES =
+    data.results || data;
+
+    render(MOVIES);
+
+    if(MOVIES.length){
+      setupHero(MOVIES[0]);
+    }
+
+  }catch(error){
+
+    console.error(error);
+
+  }
+
+}
+
+/* =========================
    HERO
 ========================= */
 
 function setupHero(movie){
 
-  const hero = document.getElementById("hero");
+  const hero =
+  document.getElementById("hero");
 
-  document.getElementById("heroTitle").textContent =
-  movie.title;
+  document.getElementById("heroTitle")
+  .textContent =
+  movie.title ||
+  movie.original_title;
 
-  document.getElementById("heroDescription").textContent =
-  movie.synopsis;
+  document.getElementById("heroDescription")
+  .textContent =
+  movie.synopsis ||
+  movie.overview;
 
   hero.style.background = `
     linear-gradient(
@@ -82,13 +92,20 @@ function setupHero(movie){
     center/cover no-repeat
   `;
 
-  document.getElementById("heroPlay").onclick = () => {
+  document.getElementById("heroPlay")
+  .onclick = () => {
+
     openMovie(movie);
+
   };
 
-  document.getElementById("heroInfo").onclick = () => {
+  document.getElementById("heroInfo")
+  .onclick = () => {
+
     openMovie(movie);
+
   };
+
 }
 
 /* =========================
@@ -97,7 +114,8 @@ function setupHero(movie){
 
 function createCard(movie){
 
-  const card = el("article","card");
+  const card =
+  el("article","card");
 
   card.innerHTML = `
     <img
@@ -108,21 +126,34 @@ function createCard(movie){
     <div class="card__meta">
 
       <p class="card__title">
-        ${movie.title}
+        ${movie.title || movie.original_title}
       </p>
 
       <p class="card__year">
-        ${movie.year}
+        ${movie.year || ""}
       </p>
 
     </div>
   `;
 
   card.onclick = () => {
+
     openMovie(movie);
+
   };
 
   return card;
+}
+
+/* =========================
+   OPEN MOVIE PAGE
+========================= */
+
+function openMovie(movie){
+
+  window.location.href =
+  `index2.html?id=${movie.id}`;
+
 }
 
 /* =========================
@@ -135,11 +166,17 @@ function render(data){
 
   data.forEach(movie => {
 
-    if(!sections[movie.section]){
-      sections[movie.section] = [];
+    const section =
+    movie.section || "Películas";
+
+    if(!sections[section]){
+
+      sections[section] = [];
+
     }
 
-    sections[movie.section].push(movie);
+    sections[section]
+    .push(movie);
 
   });
 
@@ -148,9 +185,11 @@ function render(data){
 
   root.innerHTML = "";
 
-  Object.entries(sections).forEach(([name,movies]) => {
+  Object.entries(sections)
+  .forEach(([name,movies]) => {
 
-    const section = el("section","section");
+    const section =
+    el("section","section");
 
     section.innerHTML = `
       <h2 class="section__title">
@@ -158,10 +197,15 @@ function render(data){
       </h2>
     `;
 
-    const row = el("div","row");
+    const row =
+    el("div","row");
 
     movies.forEach(movie => {
-      row.appendChild(createCard(movie));
+
+      row.appendChild(
+        createCard(movie)
+      );
+
     });
 
     section.appendChild(row);
@@ -170,49 +214,6 @@ function render(data){
 
   });
 
-}
-
-/* =========================
-   OPEN MOVIE
-========================= */
-
-function openMovie(movie){
-
-  const modal =
-  document.createElement("div");
-
-  modal.className =
-  "movie-modal";
-
-  modal.innerHTML = `
-    <div class="movie-modal__content">
-
-      <button class="movie-close">
-        ✕
-      </button>
-
-      <video controls autoplay>
-
-        <source
-          src="${movie.video}"
-          type="video/mp4"
-        >
-
-      </video>
-
-      <h2>${movie.title}</h2>
-
-      <p>${movie.synopsis}</p>
-
-    </div>
-  `;
-
-  document.body.appendChild(modal);
-
-  modal.querySelector(".movie-close")
-  .onclick = () => {
-    modal.remove();
-  };
 }
 
 /* =========================
@@ -230,11 +231,18 @@ function setupSearch(){
     input.value.toLowerCase();
 
     const filtered =
-    DATA.filter(movie =>
-      movie.title
-      .toLowerCase()
-      .includes(value)
-    );
+    MOVIES.filter(movie => {
+
+      const title =
+      (
+        movie.title ||
+        movie.original_title ||
+        ""
+      ).toLowerCase();
+
+      return title.includes(value);
+
+    });
 
     render(filtered);
 
@@ -246,8 +254,6 @@ function setupSearch(){
    INIT
 ========================= */
 
-render(DATA);
-
-setupHero(DATA[0]);
+fetchMovies();
 
 setupSearch();

@@ -1,6 +1,5 @@
 /* =========================
    MAIN.JS
-   Fakeflix Search API
 ========================= */
 
 document
@@ -23,6 +22,7 @@ document
     alert("Escribe algo");
 
     return;
+
   }
 
   let url = "";
@@ -58,6 +58,7 @@ document
       "<li>No se encontraron películas</li>";
 
       return;
+
     }
 
     data.results.forEach(movie => {
@@ -66,7 +67,9 @@ document
       document.createElement("li");
 
       li.innerHTML = `
-        🎬 ${movie.original_title}
+        <a href="index2.html?id=${movie.id}">
+          🎬 ${movie.original_title}
+        </a>
       `;
 
       resultado.appendChild(li);
