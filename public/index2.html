@@ -1,3 +1,4 @@
+<!-- INDEX2.HTML -->
 <!doctype html>
 <html lang="es">
 
@@ -23,10 +24,6 @@
 
   <div class="player">
 
-    <!-- =========================
-         TOPBAR
-    ========================== -->
-
     <div class="player__top">
 
       <div class="logo">
@@ -46,22 +43,17 @@
 
     </div>
 
-    <!-- =========================
-         VIDEO
-    ========================== -->
+    <!-- VIDEO -->
 
     <video
       id="movieVideo"
       controls
       autoplay
-    >
-    </video>
+    ></video>
 
     <div class="shadow"></div>
 
-    <!-- =========================
-         INFO
-    ========================== -->
+    <!-- INFO -->
 
     <div class="player__info">
 
@@ -69,79 +61,19 @@
         class="player__title"
         id="movieTitle"
       >
-        Cargando...
       </h1>
 
       <p
         class="player__desc"
         id="movieDescription"
       >
-        ...
       </p>
 
     </div>
 
   </div>
 
-  <script>
-
-    /* =========================
-       GET MOVIE ID
-    ========================== */
-
-    const params =
-    new URLSearchParams(window.location.search);
-
-    const movieId =
-    params.get("id");
-
-    /* =========================
-       LOAD MOVIE
-    ========================== */
-
-    async function loadMovie(){
-
-      try{
-
-        const response =
-        await fetch(
-          `http://localhost:3000/api/films/${movieId}`
-        );
-
-        const movie =
-        await response.json();
-
-        document.getElementById("movieTitle")
-        .textContent =
-        movie.title ||
-        movie.original_title;
-
-        document.getElementById("movieDescription")
-        .textContent =
-        movie.synopsis ||
-        movie.overview;
-
-        const video =
-        document.getElementById("movieVideo");
-
-        video.innerHTML = `
-          <source
-            src="${movie.video}"
-            type="video/mp4"
-          >
-        `;
-
-      }catch(error){
-
-        console.error(error);
-
-      }
-
-    }
-
-    loadMovie();
-
-  </script>
+  <script src="./main.js"></script>
 
 </body>
 
