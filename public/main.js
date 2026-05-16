@@ -1,45 +1,82 @@
-document.getElementById("btnBuscar").addEventListener("click", async function () {
+/* =========================
+   MAIN.JS
+   Fakeflix Search API
+========================= */
 
-    const texto = document.getElementById("texto").value.trim();
-    const tipo = document.getElementById("tipo").value;
+document
+.getElementById("btnBuscar")
+?.addEventListener("click", async () => {
 
-    if (!texto) {
-        alert("Escribe algo para buscar");
-        return;
+  const texto =
+  document
+  .getElementById("texto")
+  .value
+  .trim();
+
+  const tipo =
+  document
+  .getElementById("tipo")
+  .value;
+
+  if(!texto){
+
+    alert("Escribe algo");
+
+    return;
+  }
+
+  let url = "";
+
+  if(tipo === "film"){
+
+    url =
+    `http://localhost:3000/api/films?name=${encodeURIComponent(texto)}`;
+
+  }else{
+
+    url =
+    `http://localhost:3000/api/films/director?name=${encodeURIComponent(texto)}`;
+
+  }
+
+  try{
+
+    const response =
+    await fetch(url);
+
+    const data =
+    await response.json();
+
+    const resultado =
+    document.getElementById("resultado");
+
+    resultado.innerHTML = "";
+
+    if(!data.results.length){
+
+      resultado.innerHTML =
+      "<li>No se encontraron películas</li>";
+
+      return;
     }
 
-    let url = "";
+    data.results.forEach(movie => {
 
-    if (tipo === "film") {
-        // @TODO: Crear variables de entorno
-        url = `http://localhost:3000/api/films?name=${encodeURIComponent(texto)}`;
-    } else if (tipo === "director") {
-        url = `http://localhost:3000/api/films/director?name=${encodeURIComponent(texto)}`;
-    }
+      const li =
+      document.createElement("li");
 
-    try {
-        const response = await fetch(url);
-        const data = await response.json();
+      li.innerHTML = `
+        🎬 ${movie.original_title}
+      `;
 
-        const list = document.getElementById("resultado");
-        list.innerHTML = ""; // limpiar resultados anteriores
+      resultado.appendChild(li);
 
-        if (data.results.length === 0) {
-            const li = document.createElement("li");
-            li.textContent = "No se encontraron resultados.";
-            list.appendChild(li);
-            return;
-        }
+    });
 
-        data.results.forEach(film => {
-            const li = document.createElement("li");
-            li.textContent = film.original_title;
-            list.appendChild(li);
-        });
+  }catch(error){
 
-    } catch (error) {
-        const list = document.getElementById("resultado");
-        list.innerHTML = "<li>Error al llamar a la API</li>";
-        console.error(error);
-    }
+    console.error(error);
+
+  }
+
 });
