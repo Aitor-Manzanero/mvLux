@@ -1,36 +1,45 @@
-/* MAIN.JS */
+document.getElementById("btnBuscar").addEventListener("click", async function () {
 
-const movie =
-JSON.parse(
-  localStorage.getItem("movie")
-);
+    const texto = document.getElementById("texto").value.trim();
+    const tipo = document.getElementById("tipo").value;
 
-/* =========================
-   LOAD MOVIE
-========================= */
+    if (!texto) {
+        alert("Escribe algo para buscar");
+        return;
+    }
 
-if(movie){
+    let url = "";
 
-  document.getElementById(
-    "movieTitle"
-  ).textContent =
-  movie.original_title;
+    if (tipo === "film") {
+        // @TODO: Crear variables de entorno
+        url = `http://localhost:3000/api/films?name=${encodeURIComponent(texto)}`;
+    } else if (tipo === "director") {
+        url = `http://localhost:3000/api/films/director?name=${encodeURIComponent(texto)}`;
+    }
 
-  document.getElementById(
-    "movieDescription"
-  ).textContent =
-  movie.overview;
+    try {
+        const response = await fetch(url);
+        const data = await response.json();
 
-  const video =
-  document.getElementById(
-    "movieVideo"
-  );
+        const list = document.getElementById("resultado");
+        list.innerHTML = ""; // limpiar resultados anteriores
 
-  video.innerHTML = `
-    <source
-      src="${movie.video || "./videos/pelicula.mp4"}"
-      type="video/mp4"
-    >
-  `;
+        if (data.results.length === 0) {
+            const li = document.createElement("li");
+            li.textContent = "No se encontraron resultados.";
+            list.appendChild(li);
+            return;
+        }
 
-}
+        data.results.forEach(film => {
+            const li = document.createElement("li");
+            li.textContent = film.original_title;
+            list.appendChild(li);
+        });
+
+    } catch (error) {
+        const list = document.getElementById("resultado");
+        list.innerHTML = "<li>Error al llamar a la API</li>";
+        console.error(error);
+    }
+});
