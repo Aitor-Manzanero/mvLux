@@ -1,17 +1,40 @@
 import pool from "../db/DBConnection.js";
-import { Film } from "../models/film.js";
+import { findFilmsByName } from "../models/film.js";
 import { findMainFilmInfo } from "../models/film.js";
-import { mapFilmToDTO } from "../mappers/file.mapper.js";
+import { mapFilmToDTO,  mapFilmToDTOSearch} from "../mappers/file.mapper.js";
 
 
-export async function findFilmsByName(name: string): Promise<Film[]> {
+export async function findFilmsByName(name: string){
   const sql = `
-  SELECT id, original_title 
-  FROM film 
-  WHERE original_title LIKE ?
+ SELECT
+    f.original_title,
+    f.release_date,
+    d.complete_name,
+    MIN(c.name) AS company,
+    f.duration,
+    f.overview
+    FROM film f
+
+    LEFT JOIN film_genre fg ON f.id = fg.film_id
+    LEFT JOIN genre g ON fg.genre_id = g.id
+
+    LEFT JOIN film_company fc ON fc.film_id = f.id
+    LEFT JOIN company c ON c.id = fc.company_id
+
+    LEFT JOIN film_director fd ON fd.film_id = f.id
+    LEFT JOIN director d ON d.id = fd.director_id
+    where f.original_title LIKE ?
+
+    GROUP BY
+        f.id,
+        f.original_title,
+        f.release_date,
+        d.complete_name,
+        f.duration,
+        f.overview;
   `;
-  const [rows] = await pool.execute<Film[]>(sql, [`%${name}%`]);
-  return rows;
+  const [rows] = await pool.execute<findFilmsByName[]>(sql, [`%${name}%`]);
+      return rows.map(mapFilmToDTOSearch);
 }
 
 export async function findFilmsByDirector(name: string) {
@@ -23,7 +46,9 @@ export async function findFilmsByDirector(name: string) {
     WHERE d.complete_name LIKE ?
   `;
 }
-
+//cambie la consulta para hacer select al genero tambien y que no se repitan peliculas, 
+// solo lo hace por ahora con generos para que aparezcan agrupadas por genero en el frontend,
+// el mapper usa lo que hay en el select, para tenerlo en cuenta en proximas consultas
   export async function findFilmInfoMainPannel(name: string) {
     const sql = `
       SELECT 
