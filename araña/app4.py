@@ -7,7 +7,6 @@ import pandas as pd
 import requests
 import mysql.connector
 
-
 # ==========================
 #  CONFIG TMDB
 # ==========================
@@ -17,9 +16,14 @@ TMDB_SEARCH_URL = f"{TMDB_BASE_URL}/search/movie"
 TMDB_MOVIE_URL = f"{TMDB_BASE_URL}/movie"
 TMDB_PERSON_URL = f"{TMDB_BASE_URL}/person"
 TMDB_GENRE_MOVIE_LIST_URL = f"{TMDB_BASE_URL}/genre/movie/list"
+TMDB_CONFIG_URL = f"{TMDB_BASE_URL}/configuration"
 
 TMDB_API_KEY = "d2f23c037a09c76eff5d98d6b04a3f19"
 TMDB_TIMEOUT = 20
+
+TMDB_IMAGE_BASE_URL = None
+TMDB_IMAGE_SECURE_BASE_URL = None
+TMDB_IMAGE_SIZES = {}
 
 
 # ==========================
@@ -34,7 +38,7 @@ DB_CONFIG = {
     "database": "fakeflix",
 }
 
-MAX_PELIS = 2
+MAX_PELIS = 100
 MAX_CONSULTAS_POR_TITULO = 1
 MAX_ACTORES_POR_PELICULA = 20
 
@@ -84,6 +88,69 @@ def safe_decimal_vote(value: Any) -> Optional[float]:
         return round(float(value), 1)
     except (TypeError, ValueError):
         return None
+
+
+def obtener_configuracion_tmdb() -> None:
+    global TMDB_IMAGE_BASE_URL, TMDB_IMAGE_SECURE_BASE_URL, TMDB_IMAGE_SIZES
+    if TMDB_IMAGE_SECURE_BASE_URL or TMDB_IMAGE_BASE_URL:
+        return
+
+    try:
+        data = tmdb_get(TMDB_CONFIG_URL)
+    except requests.RequestException:
+        return
+
+    images = data.get("images", {})
+    TMDB_IMAGE_BASE_URL = images.get("base_url")
+    TMDB_IMAGE_SECURE_BASE_URL = images.get("secure_base_url")
+    TMDB_IMAGE_SIZES = {
+        "poster": images.get("poster_sizes", []),
+        "profile": images.get("profile_sizes", []),
+        "logo": images.get("logo_sizes", []),
+    }
+
+
+def construir_tmdb_image_url(path: Optional[str], size_type: str = "poster") -> Optional[str]:
+    if not path:
+        return None
+
+    obtener_configuracion_tmdb()
+    base_url = TMDB_IMAGE_SECURE_BASE_URL or TMDB_IMAGE_BASE_URL
+    if not base_url:
+        return None
+
+    sizes = TMDB_IMAGE_SIZES.get(size_type, []) or []
+    preferred_sizes = ["w500", "w300", "w185", "original"]
+    selected_size = None
+
+    for size in preferred_sizes:
+        if size in sizes:
+            selected_size = size
+            break
+
+    if not selected_size and sizes:
+        selected_size = sizes[-1]
+
+    if not selected_size:
+        selected_size = "original"
+
+    if path.startswith("/"):
+        return f"{base_url}{selected_size}{path}"
+    return f"{base_url}{selected_size}/{path}"
+
+
+def calcular_is_legal_director(deathdate_str: Optional[str]) -> int:
+    if not deathdate_str:
+        return 0
+
+    try:
+        death_date = datetime.strptime(deathdate_str, "%Y-%m-%d").date()
+    except ValueError:
+        return 0
+
+    legal_start = datetime(death_date.year + 1, 1, 1).date()
+    legal_date = datetime(legal_start.year + 70, 1, 1).date()
+    return 1 if datetime.utcnow().date() >= legal_date else 0
 
 
 # ==========================
@@ -163,7 +230,21 @@ def obtener_detalle_pelicula_tmdb(id_tmdb_pelicula: int) -> Dict[str, Any]:
         "language": "es-ES",
         "append_to_response": "credits",
     }
-    return tmdb_get(url, params=params)
+
+    movie_detail = tmdb_get(url, params=params)
+    overview = movie_detail.get("overview") or ""
+
+    if not overview.strip():
+        try:
+            fallback_detail = tmdb_get(url, params={"language": "en-US", "append_to_response": "credits"})
+            movie_detail["overview"] = fallback_detail.get("overview") or movie_detail.get("overview")
+            movie_detail["title"] = movie_detail.get("title") or fallback_detail.get("title")
+            if not movie_detail.get("credits"):
+                movie_detail["credits"] = fallback_detail.get("credits")
+        except requests.RequestException:
+            pass
+
+    return movie_detail
 
 
 def obtener_persona_tmdb(id_tmdb_persona: int) -> Optional[Dict[str, Any]]:
@@ -174,7 +255,9 @@ def obtener_persona_tmdb(id_tmdb_persona: int) -> Optional[Dict[str, Any]]:
     except requests.RequestException:
         data_es = None
 
-    if data_es and data_es.get("biography"):
+    biography_es = (data_es.get("biography") or "").strip() if data_es else ""
+
+    if biography_es:
         return data_es
 
     try:
@@ -182,12 +265,28 @@ def obtener_persona_tmdb(id_tmdb_persona: int) -> Optional[Dict[str, Any]]:
     except requests.RequestException:
         data_en = None
 
+    biography_en = (data_en.get("biography") or "").strip() if data_en else ""
+
+    if biography_en:
+        if data_es:
+            data_es["biography"] = data_en.get("biography")
+            return data_es
+        return data_en
+
     return data_es or data_en
 
 
 def obtener_mapa_generos_tmdb() -> Dict[int, str]:
     data = tmdb_get(TMDB_GENRE_MOVIE_LIST_URL, params={"language": "es-ES"})
     genres = data.get("genres", [])
+
+    if not genres:
+        try:
+            data = tmdb_get(TMDB_GENRE_MOVIE_LIST_URL, params={"language": "en-US"})
+            genres = data.get("genres", [])
+        except requests.RequestException:
+            genres = []
+
     return {g["id"]: g["name"] for g in genres if g.get("id") and g.get("name")}
 
 
@@ -201,9 +300,11 @@ def mapear_film_desde_tmdb(movie_detail: Dict[str, Any]) -> Dict[str, Any]:
         "original_title": movie_detail.get("original_title"),
         "overview": movie_detail.get("overview"),
         "title_es": movie_detail.get("title"),
+        "poster_url": construir_tmdb_image_url(movie_detail.get("poster_path"), "poster"),
+        "backdrop_url": construir_tmdb_image_url(movie_detail.get("backdrop_path"), "poster"),
         "vote_avg": safe_decimal_vote(movie_detail.get("vote_average")),
         "vote_count": movie_detail.get("vote_count"),
-        "is_published": 1,
+        "is_published": 0,
         "internal_comment": None,
         "quality": None,
         "duration": movie_detail.get("runtime"),
@@ -260,6 +361,7 @@ def extraer_companias(movie_detail: Dict[str, Any]) -> List[Dict[str, Any]]:
             resultado.append({
                 "id_tmdb": c.get("id"),
                 "name": c.get("name"),
+                "logo_url": construir_tmdb_image_url(c.get("logo_path"), "logo"),
             })
 
     return resultado
@@ -308,6 +410,8 @@ def obtener_o_crear_film(conn, film_data: Dict[str, Any]) -> int:
             SET original_title = %s,
                 overview = %s,
                 title_es = %s,
+                poster_url = %s,
+                backdrop_url = %s,
                 vote_avg = %s,
                 vote_count = %s,
                 duration = %s,
@@ -318,6 +422,8 @@ def obtener_o_crear_film(conn, film_data: Dict[str, Any]) -> int:
                 film_data["original_title"],
                 film_data["overview"],
                 film_data["title_es"],
+                film_data["poster_url"],
+                film_data["backdrop_url"],
                 film_data["vote_avg"],
                 film_data["vote_count"],
                 film_data["duration"],
@@ -336,6 +442,8 @@ def obtener_o_crear_film(conn, film_data: Dict[str, Any]) -> int:
             original_title,
             overview,
             title_es,
+            poster_url,
+            backdrop_url,
             vote_avg,
             vote_count,
             is_published,
@@ -344,13 +452,15 @@ def obtener_o_crear_film(conn, film_data: Dict[str, Any]) -> int:
             duration,
             release_date
         )
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """,
         (
             film_data["id_tmdb"],
             film_data["original_title"],
             film_data["overview"],
             film_data["title_es"],
+            film_data["poster_url"],
+            film_data["backdrop_url"],
             film_data["vote_avg"],
             film_data["vote_count"],
             film_data["is_published"],
@@ -379,10 +489,16 @@ def obtener_o_crear_director(conn, persona_tmdb: Dict[str, Any], detalle_persona
     cur.execute("SELECT id FROM director WHERE id_tmdb = %s", (id_tmdb,))
     row = cur.fetchone()
 
+    if not detalle_persona:
+        detalle_persona = obtener_persona_tmdb(id_tmdb)
+
     birthday = parse_fecha_date(detalle_persona.get("birthday")) if detalle_persona else None
     deathdate = parse_fecha_date(detalle_persona.get("deathday")) if detalle_persona else None
     country_origin = extraer_country_origin(detalle_persona.get("place_of_birth")) if detalle_persona else None
     biography = detalle_persona.get("biography") if detalle_persona else None
+    biography = biography.strip() if biography and isinstance(biography, str) else biography
+    profile_url = construir_tmdb_image_url(detalle_persona.get("profile_path"), "profile") if detalle_persona else None
+    is_legal = calcular_is_legal_director(detalle_persona.get("deathday") if detalle_persona else None)
 
     if row:
         director_id = row[0]
@@ -393,7 +509,9 @@ def obtener_o_crear_director(conn, persona_tmdb: Dict[str, Any], detalle_persona
                 birthday = %s,
                 deathdate = %s,
                 country_origin = %s,
-                biography = %s
+                is_legal = %s,
+                biography = %s,
+                profile_url = %s
             WHERE id = %s
             """,
             (
@@ -401,7 +519,9 @@ def obtener_o_crear_director(conn, persona_tmdb: Dict[str, Any], detalle_persona
                 birthday,
                 deathdate,
                 country_origin,
+                is_legal,
                 biography,
+                profile_url,
                 director_id,
             ),
         )
@@ -419,9 +539,10 @@ def obtener_o_crear_director(conn, persona_tmdb: Dict[str, Any], detalle_persona
             country_origin,
             is_legal,
             is_published,
-            biography
+            biography,
+            profile_url
         )
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
         """,
         (
             id_tmdb,
@@ -429,9 +550,10 @@ def obtener_o_crear_director(conn, persona_tmdb: Dict[str, Any], detalle_persona
             birthday,
             deathdate,
             country_origin,
-            1,
+            is_legal,
             1,
             biography,
+            profile_url,
         ),
     )
     conn.commit()
@@ -472,6 +594,8 @@ def obtener_o_crear_actor(conn, persona_tmdb: Dict[str, Any], detalle_persona: O
     deathdate = parse_fecha_date(detalle_persona.get("deathday")) if detalle_persona else None
     country_origin = extraer_country_origin(detalle_persona.get("place_of_birth")) if detalle_persona else None
     biography = detalle_persona.get("biography") if detalle_persona else None
+    biography = biography.strip() if biography and isinstance(biography, str) else biography
+    profile_url = construir_tmdb_image_url(detalle_persona.get("profile_path"), "profile") if detalle_persona else None
 
     if row:
         actor_id = row[0]
@@ -482,7 +606,8 @@ def obtener_o_crear_actor(conn, persona_tmdb: Dict[str, Any], detalle_persona: O
                 birthday = %s,
                 deathdate = %s,
                 country_origin = %s,
-                biography = %s
+                biography = %s,
+                profile_url = %s
             WHERE id = %s
             """,
             (
@@ -491,6 +616,7 @@ def obtener_o_crear_actor(conn, persona_tmdb: Dict[str, Any], detalle_persona: O
                 deathdate,
                 country_origin,
                 biography,
+                profile_url,
                 actor_id,
             ),
         )
@@ -507,9 +633,10 @@ def obtener_o_crear_actor(conn, persona_tmdb: Dict[str, Any], detalle_persona: O
             deathdate,
             country_origin,
             biography,
+            profile_url,
             country_historical
         )
-        VALUES (%s, %s, %s, %s, %s, %s, %s)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
         """,
         (
             id_tmdb,
@@ -518,6 +645,7 @@ def obtener_o_crear_actor(conn, persona_tmdb: Dict[str, Any], detalle_persona: O
             deathdate,
             country_origin,
             biography,
+            profile_url,
             None,
         ),
     )
@@ -551,20 +679,21 @@ def obtener_o_crear_company(conn, company_tmdb: Dict[str, Any]) -> int:
 
     id_tmdb = company_tmdb["id_tmdb"]
     name = company_tmdb["name"]
+    logo_url = company_tmdb.get("logo_url")
 
     cur.execute("SELECT id FROM company WHERE id_tmdb = %s", (id_tmdb,))
     row = cur.fetchone()
 
     if row:
         company_id = row[0]
-        cur.execute("UPDATE company SET name = %s WHERE id = %s", (name, company_id))
+        cur.execute("UPDATE company SET name = %s, logo_url = %s WHERE id = %s", (name, logo_url, company_id))
         conn.commit()
         cur.close()
         return company_id
 
     cur.execute(
-        "INSERT INTO company (id_tmdb, name) VALUES (%s, %s)",
-        (id_tmdb, name),
+        "INSERT INTO company (id_tmdb, name, logo_url) VALUES (%s, %s, %s)",
+        (id_tmdb, name, logo_url),
     )
     conn.commit()
     nuevo_id = cur.lastrowid
@@ -594,9 +723,10 @@ def vincular_film_y_company(conn, film_id: int, company_id: int):
 def obtener_o_crear_genre(conn, genre_tmdb: Dict[str, Any]) -> int:
     cur = conn.cursor()
 
+    id_tmdb = genre_tmdb["id_tmdb"]
     nombre = genre_tmdb["name"]
 
-    cur.execute("SELECT id FROM genre WHERE genre_name = %s", (nombre,))
+    cur.execute("SELECT id FROM genre WHERE id_tmdb = %s", (id_tmdb,))
     row = cur.fetchone()
 
     if row:
@@ -605,8 +735,8 @@ def obtener_o_crear_genre(conn, genre_tmdb: Dict[str, Any]) -> int:
         return genre_id
 
     cur.execute(
-        "INSERT INTO genre (genre_name, description) VALUES (%s, %s)",
-        (nombre, None),
+        "INSERT INTO genre (id_tmdb, genre_name, description) VALUES (%s, %s, %s)",
+        (id_tmdb, nombre, None),
     )
     conn.commit()
     nuevo_id = cur.lastrowid

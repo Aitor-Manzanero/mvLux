@@ -26,17 +26,43 @@ export async function findFilmsByDirector(name: string) {
 
   export async function findFilmInfoMainPannel(name: string) {
     const sql = `
-    select f.original_title, f.release_date, d.complete_name, c.name, f.duration, f.overview
-      from film f
-      LEFT JOIN film_genre fg on f.id = fg.film_id
-      LEFT JOIN genre g on fg.genre_id = g.id
-      LEFT JOIN film_actor fa on fa.film_id = f.id
-      LEFT JOIN actor a on fa.actor_id = a.id
-      LEFT JOIN film_company fc on fc.film_id = f.id
-      LEFT JOIN company c on c.id = fc.company_id
-      LEFT JOIN film_director fd on fd.film_id = f.id
-      LEFT JOIN director d on d.id = fd.director_id
-      LIMIT 1;
+      SELECT 
+      f.original_title, 
+      f.release_date, 
+      f.duration, 
+      f.overview,
+    
+      (
+          SELECT JSON_ARRAYAGG(d.complete_name)
+          FROM film_director fd
+          JOIN director d ON d.id = fd.director_id
+          WHERE fd.film_id = f.id
+      ) AS directors,
+
+      (
+          SELECT JSON_ARRAYAGG(c.name)
+          FROM film_company fc
+          JOIN company c ON c.id = fc.company_id
+          WHERE fc.film_id = f.id
+      ) AS companies,
+
+      (
+          SELECT JSON_ARRAYAGG(g.genre_name)
+          FROM film_genre fg
+          JOIN genre g ON g.id = fg.genre_id
+          WHERE fg.film_id = f.id
+      ) AS genres
+
+      FROM film f
+      WHERE EXISTS (
+          SELECT 1
+          FROM film_genre fg
+          JOIN genre g ON g.id = fg.genre_id
+          WHERE fg.film_id = f.id
+            AND g.genre_name = $1
+      )
+      ORDER BY f.vote_avg DESC
+      LIMIT 10;
         `;
     const [rows] = await pool.execute<findMainFilmInfo[]>(sql, [`%${name}%`]);
       return rows.map(mapFilmToDTO);
